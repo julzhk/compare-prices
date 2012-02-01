@@ -12,7 +12,15 @@
         </ul>
 {% endblock %}
 {% block main %}
-        This product: <strong> {{ showproduct.name }} </strong> is sold on the
-    followings sites at the following prices:
-
+<ul>
+    {% for group in prices|groupby('product_data.name') %}
+    <li>{{ group.grouper }}<ul>
+        {% for product in group.list %}
+        <li>
+            {{ product.url}},
+            $ {{ product.current_price}}
+        </li>
+        {% endfor %}</ul></li>
+    {% endfor %}
+</ul>
 {% endblock %}
