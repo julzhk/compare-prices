@@ -1,0 +1,16 @@
+{% extends 'templates/_base.html' %}
+
+{% block content %}
+        <ul>
+            {% for product in products %}
+            <li>
+                <a href="?product={{ product.name }}">
+                    {{ product.name}}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+{% endblock %}
+{% block main %}
+        {{ showproduct }}
+{% endblock %}

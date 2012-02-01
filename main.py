@@ -9,35 +9,33 @@ from models import *
 
 class init(webapp2.RequestHandler):
     def get(self):
-        for m in [Page,Site, Prodct, PriceInstance]:
-            for i in m.query().fetch():
-                i.delete()
+        for m in [Page,Site, Product, PriceInstance]:
+            print '*'*8, m
+            for i in m.query():
+                print i
+                del(i)
         print 'ok, nuked'
+        for name in ['bbq1','bbq2','bbq3']:
+            p = Product(name = name)
+            p.put()
+
 
 
 class MainPage(webapp2.RequestHandler):
     def get(self):
-        s = Site(url = 'example')
-        s.put()
-        p = Page(name = 'new page')
-        p.site = s.key
-        p.put()
-        guestbook_name=self.request.get('guestbook_name', 'default')
-        if users.get_current_user():
-            url = users.create_logout_url(self.request.uri)
-            url_linktext = 'Logout'
-        else:
-            url = users.create_login_url(self.request.uri)
-            url_linktext = 'Login'
+        allproducts = Product.query()
+        showproduct = self.request.get('product', '')
+
+
 
         template_values = {
-            'guestbook_name': guestbook_name,
-            'url': url,
-            'url_linktext': url_linktext,
+            'products':allproducts,
+            'showproduct':showproduct
             }
 
-        template = jinja_environment.get_template('templates/_base.html')
+        template = jinja_environment.get_template('templates/main.html')
         self.response.out.write(template.render(template_values))
+
 
 app = webapp2.WSGIApplication([
         ('/init', init),
