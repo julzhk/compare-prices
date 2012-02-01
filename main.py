@@ -19,8 +19,8 @@ class init(webapp2.RequestHandler):
             for i in m.query():
                 i.key.delete()
         print 'ok, nuked'
-        for name in ['bbq1','bbq2','bbq3']:
-            p = Product(name = name,our_price = 20+ random.random())
+        for name in ['bbq1','bbq 2','bbq3']:
+            p = Product(name = name,our_price = 20+ random.random(),sku = name)
             p.put()
             page = Page(url = 'amazon.com',product = p.key,
                         current_price = 23.3+ random.random())
@@ -54,7 +54,7 @@ class MainPage(webapp2.RequestHandler):
         product_list = self.grouper(data=allpages)
         template_values = {
             'products':allproducts,
-            'prices': product_list,
+            'pages': product_list,
             }
 
         template = jinja_environment.get_template('templates/main.html')

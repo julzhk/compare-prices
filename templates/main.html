@@ -13,12 +13,22 @@
 {% endblock %}
 {% block main %}
 <ul>
-    {% for group in prices|groupby('product_data.name') %}
-    <li>{{ group.grouper }}<ul>
-        {% for product in group.list %}
+    {% for product in pages|groupby('product_data.name') %}
+    <li>
+        <a href="?productname={{ product.grouper|e }}">
+            {{ product.grouper }}
+        </a>
+    <ul>
+    {% for page in product.list %}
         <li>
-            {{ product.url}},
-            $ {{ product.current_price}}
+            {{ page.url}},
+
+            $ {{ page.current_price|round(2)}}, ourprice=
+            {{ page.product_data.our_price|round(2) }}
+            {% if page.current_price < page.product_data.our_price %}
+             {{ page.product_data.our_price|round(2) - page.current_price|round(2) }}
+
+            {% endif %}
         </li>
         {% endfor %}</ul></li>
     {% endfor %}
