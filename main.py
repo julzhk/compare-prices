@@ -24,13 +24,14 @@ class init(webapp2.RequestHandler):
 class MainPage(webapp2.RequestHandler):
     def get(self):
         allproducts = Product.query()
-        showproduct = self.request.get('product', '')
-
+        showproduct = self.request.get('product', None)
+        if showproduct:
+            showproduct = Product.query(Product.name == showproduct).get()
 
 
         template_values = {
             'products':allproducts,
-            'showproduct':showproduct
+            'showproduct':showproduct,
             }
 
         template = jinja_environment.get_template('templates/main.html')
