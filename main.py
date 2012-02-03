@@ -19,33 +19,54 @@ class init(webapp2.RequestHandler):
             for i in m.query():
                 i.key.delete()
         print 'ok, nuked'
+        t = Site(name = 'ebay', url = 'ebay')
+        t.put()
+        t2 = Site(name = 'amazon', url = 'amazon')
+        t2.put()
         for name in ['bbq1','bbq 2','bbq3']:
             p = Product(name = name,our_price = 20+ random.random(),sku = name)
             p.put()
-            page = Page(url = 'amazon.com',product = p.key,
+            page = Page(url = 'amazon.com',
+                        product = p.key,
+                        site = t.key,
                         current_price = 23.3+ random.random())
             page.put()
-            page = Page(url = 'ebay.com',product = p.key,
+            page = Page(url = 'ebay.com',
+                        site = t2.key,
+                        product = p.key,
                         current_price = 15+ random.random())
             page.put()
 
+
+class urlfetch(webapp2.RequestHandler):
+    def get(self):
+        from bs4 import BeautifulSoup, SoupStrainer
+        from google.appengine.api import urlfetch
+        result = urlfetch.fetch(url="http://www.example.com/")
+        if result.status_code == 200:
+            self.response.out.write('ok 200')
+            self.response.out.write(result.content)
+        self.response.out.write('LINKS')
+        response = result.content
+        for link in BeautifulSoup(response, parseOnlyThese=SoupStrainer('a')):
+            if link.has_key('href'):
+                self.response.out.write(link['href'])
+                self.response.out.write('<br>')
+        self.response.out.write('.. and out')
 
 class MainPage(webapp2.RequestHandler):
     def grouper(self,data):
         data.sort()
         r = []
-        print 'Grouped, sorted:'
-        for k, g in groupby(data, lambda o:o.product):
-#            print k
-            p = Product.query(Product.key== k).get()
-#            print p.name,':'
-            for a, b in groupby(list(g), lambda o:o.url):
-#                print a
-                for c in b:
-#                    print c.url, ' $ ',c.current_price
-                    c.product_data = p
-                    r.append(c)
-        r = sorted(r, key=lambda p: p.product.urlsafe())
+        for product_key, outer_grouper in groupby(data, lambda o:o.product):
+            p = Product.query(Product.key== product_key).get()
+            for site_name, inner_grouper in groupby(list(outer_grouper), lambda o:o.url):
+                for page in inner_grouper:
+                    page.product_data = p
+                    s = Site.query(Site.key == page.site).get()
+                    page.site_name = s.name
+                    r.append(page)
+        r = sorted(r, key=lambda p: p.product_data.name)
         return r
 
     def get(self):
@@ -63,5 +84,6 @@ class MainPage(webapp2.RequestHandler):
 
 app = webapp2.WSGIApplication([
         ('/init', init),
+        ('/get', urlfetch),
         ('/', MainPage),
     ],debug=True)
