@@ -10,7 +10,7 @@
 <ul>
     {% for product in products %}
     <li>
-        <a href="?productname={{ product.name }}">
+        <a href="/archive?product={{ product.key.id() }}">
             {{ product.name}}
         </a>
     </li>

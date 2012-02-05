@@ -25,6 +25,8 @@ class Archive_Price(model.Model):
     product = model.KeyProperty()
     date = model.DateTimeProperty()
     price = model.FloatProperty()
+    url = model.StringProperty()
+    site = model.StringProperty()
 
 
 
@@ -45,3 +47,14 @@ class greenfingers(retailer):
                 price = re.findall(r'[0-9\.]+', str(c))
                 if price:
                     return float(price[0])
+
+
+class gardenforless(retailer):
+    def get_price(self,url):
+        html_doc  = self.get_page_content(url =url)
+        soup = BeautifulSoup(html_doc)
+        i = soup.find(id="pricediv0")
+        c = i.contents[0]
+        price = re.findall(r'[0-9\.]+', c)
+        if price:
+            return float(price[0])

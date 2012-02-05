@@ -22,7 +22,7 @@ class init(webapp2.RequestHandler):
             return result.content
 
     def get(self):
-        for m in [Page,Site, Product]:
+        for m in [Page,Site, Product,Archive_Price]:
             print '*'*8, m
             for i in m.query():
                 i.key.delete()
@@ -47,10 +47,34 @@ class init(webapp2.RequestHandler):
              'http://www.greenfingers.com/superstore/product.asp?dept_id=2211&pf_id=CA1078D'
                 ),
         ]:
-            p = Product(name = name,our_price = 20+ random.random(),sku = name)
-            p.put()
+            product = Product(name = name,our_price = 20+ random.random(),sku = name)
+            product.put()
             page = Page(url =url,
-                        product = p.key,
+                        product = product.key,
+                        site = t.key,
+                        current_price = 99.9)
+            page.put()
+        t = Site(
+            name = 'garden4less',
+            price_class= 'gardenforless',
+            url = 'http://www.garden4less.co.uk'
+        )
+        t.put()
+        for name, url in [
+            ('Weber Spirit Classic E210',
+             'http://www.garden4less.co.uk/weber-spirit-classic-e210-gas-bbq.asp'
+                ),
+            ('Weber Spirit Classic E310',
+             'http://www.garden4less.co.uk/weber-spirit-classic-e310-gas-bbq.asp'
+                ),
+            ('Weber Spirit Classic E320',
+             'http://www.garden4less.co.uk/weber-spirit-e320-classic-gas-bbq.asp'
+                ),
+        ]:
+            product = Product(name = name,our_price = 20+ random.random(),sku = name)
+            product.put()
+            page = Page(url =url,
+                        product = product.key,
                         site = t.key,
                         current_price = 99.9)
             page.put()
@@ -59,10 +83,13 @@ class init(webapp2.RequestHandler):
 class update(webapp2.RequestHandler):
 
     def store_archive(self,page):
+        site = Site.query(Site.key == page.site).get()
         a = Archive_Price(
             product = page.product,
             date=page.date,
-            price =page.current_price
+            price =page.current_price,
+            url = page.url,
+            site = site.name
         )
         a.put()
 
@@ -103,9 +130,23 @@ class MainPage(webapp2.RequestHandler):
         template = jinja_environment.get_template('templates/main.html')
         self.response.out.write(template.render(template_values))
 
+class archive(webapp2.RequestHandler):
+    def get(self):
+        k = self.request.get('product')
+        product = Product.get_by_id(int(k))
+        archive_data = Archive_Price.query(Archive_Price.product == product.key).fetch()
+        template_values = {
+            'product':product,
+            'data': archive_data,
+            }
+        template = jinja_environment.get_template('templates/archive.html')
+        self.response.out.write(template.render(template_values))
+
+
 
 app = webapp2.WSGIApplication([
         ('/init', init),
         ('/get', update),
         ('/', MainPage),
+        ('/archive', archive),
     ],debug=True)
