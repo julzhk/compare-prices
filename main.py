@@ -6,6 +6,8 @@ import random
 from itertools import *
 from operator import itemgetter
 import pprint
+from BeautifulSoup import BeautifulSoup
+import re
 
 
 jinja_environment = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
@@ -19,43 +21,60 @@ class init(webapp2.RequestHandler):
         if result.status_code == 200:
             return result.content
 
-    def get_price(self,url):
-        html_doc  = self.get_page_content(url =url)
-        from BeautifulSoup import BeautifulSoup
-        import re
-        soup = BeautifulSoup(html_doc)
-        for i in soup.findAll(color="#f0d637"):
-            for c in i.contents:
-                price = re.findall(r'[0-9\.]+', str(c))
-                if price:
-                    return float(price[0])
     def get(self):
         for m in [Page,Site, Product]:
             print '*'*8, m
             for i in m.query():
                 i.key.delete()
         self.response.out.write('ok, nuked')
-        t = Site(name = 'greenfingers.com', url = 'http://www.greenfingers.com')
+        t = Site(
+            name = 'greenfingers.com',
+            price_class= 'greenfingers',
+            url = 'http://www.greenfingers.com'
+        )
         t.put()
-        for name in ['LS6157D Fire pit']:
+        for name, url in [
+            ('LS6157D Fire pit',
+             'http://www.greenfingers.com/superstore/product.asp?dept_id=2211&pf_id=LS6157D'
+            ),
+            ('DD4251 Grilletto',
+             'http://www.greenfingers.com/superstore/product.asp?dept_id=200398&pf_id=DD4215D'
+                ),
+            ('Steel Oil Drum',
+             'http://www.greenfingers.com/superstore/product.asp?dept_id=200398&pf_id=LS4303D'
+                ),
+            (' Moroccan Fire Basket',
+             'http://www.greenfingers.com/superstore/product.asp?dept_id=2211&pf_id=CA1078D'
+                ),
+        ]:
             p = Product(name = name,our_price = 20+ random.random(),sku = name)
             p.put()
-            url = 'http://www.greenfingers.com/superstore/product.asp?dept_id=2211&pf_id=LS6157D'
             page = Page(url =url,
                         product = p.key,
                         site = t.key,
-                        current_price = self.get_price(url = url))
+                        current_price = 99.9)
             page.put()
 
 
-class urlfetch(webapp2.RequestHandler):
+class update(webapp2.RequestHandler):
 
+    def store_archive(self,page):
+        a = Archive_Price(
+            product = page.product,
+            date=page.date,
+            price =page.current_price
+        )
+        a.put()
 
     def get(self):
-        url = 'http://www.greenfingers.com/superstore/product.asp?dept_id=2211&pf_id=LS6157D'
-#        s = self.get_page_content(url=url)
-        s = self.get_price(url=url)
-        self.response.out.write(s)
+        allpages = Page.query().fetch()
+        for page in allpages:
+            site = Site.query(Site.key == page.site).get()
+            g = eval(site.price_class)()
+            page.current_price = g.get_price(url = page.url)
+            self.store_archive(page)
+            page.put()
+        self.response.out.write('pages scraped and updated')
 
 class MainPage(webapp2.RequestHandler):
     def grouper(self,data):
@@ -87,6 +106,6 @@ class MainPage(webapp2.RequestHandler):
 
 app = webapp2.WSGIApplication([
         ('/init', init),
-        ('/get', urlfetch),
+        ('/get', update),
         ('/', MainPage),
     ],debug=True)
