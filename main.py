@@ -13,46 +13,49 @@ from google.appengine.api import users
 from models import *
 
 class init(webapp2.RequestHandler):
+    def get_page_content(self,url):
+        from google.appengine.api import urlfetch
+        result = urlfetch.fetch(url=url)
+        if result.status_code == 200:
+            return result.content
+
+    def get_price(self,url):
+        html_doc  = self.get_page_content(url =url)
+        from BeautifulSoup import BeautifulSoup
+        import re
+        soup = BeautifulSoup(html_doc)
+        for i in soup.findAll(color="#f0d637"):
+            for c in i.contents:
+                price = re.findall(r'[0-9\.]+', str(c))
+                if price:
+                    return float(price[0])
     def get(self):
         for m in [Page,Site, Product]:
             print '*'*8, m
             for i in m.query():
                 i.key.delete()
-        print 'ok, nuked'
-        t = Site(name = 'ebay', url = 'ebay')
+        self.response.out.write('ok, nuked')
+        t = Site(name = 'greenfingers.com', url = 'http://www.greenfingers.com')
         t.put()
-        t2 = Site(name = 'amazon', url = 'amazon')
-        t2.put()
-        for name in ['bbq1','bbq 2','bbq3']:
+        for name in ['LS6157D Fire pit']:
             p = Product(name = name,our_price = 20+ random.random(),sku = name)
             p.put()
-            page = Page(url = 'amazon.com',
+            url = 'http://www.greenfingers.com/superstore/product.asp?dept_id=2211&pf_id=LS6157D'
+            page = Page(url =url,
                         product = p.key,
                         site = t.key,
-                        current_price = 23.3+ random.random())
-            page.put()
-            page = Page(url = 'ebay.com',
-                        site = t2.key,
-                        product = p.key,
-                        current_price = 15+ random.random())
+                        current_price = self.get_price(url = url))
             page.put()
 
 
 class urlfetch(webapp2.RequestHandler):
+
+
     def get(self):
-        from bs4 import BeautifulSoup, SoupStrainer
-        from google.appengine.api import urlfetch
-        result = urlfetch.fetch(url="http://www.example.com/")
-        if result.status_code == 200:
-            self.response.out.write('ok 200')
-            self.response.out.write(result.content)
-        self.response.out.write('LINKS')
-        response = result.content
-        for link in BeautifulSoup(response, parseOnlyThese=SoupStrainer('a')):
-            if link.has_key('href'):
-                self.response.out.write(link['href'])
-                self.response.out.write('<br>')
-        self.response.out.write('.. and out')
+        url = 'http://www.greenfingers.com/superstore/product.asp?dept_id=2211&pf_id=LS6157D'
+#        s = self.get_page_content(url=url)
+        s = self.get_price(url=url)
+        self.response.out.write(s)
 
 class MainPage(webapp2.RequestHandler):
     def grouper(self,data):
