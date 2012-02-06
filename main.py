@@ -94,7 +94,7 @@ class update(webapp2.RequestHandler):
         a.put()
 
     def get(self):
-        allpages = Page.query().fetch()
+        allpages = Page.query().order(Page.date).fetch()
         for page in allpages:
             site = Site.query(Site.key == page.site).get()
             g = eval(site.price_class)()
