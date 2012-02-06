@@ -1,0 +1,4 @@
+cron:
+- description: daily scrape
+  url: /get
+  schedule: every 1 hours
