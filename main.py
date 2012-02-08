@@ -1,12 +1,20 @@
-import webapp2
+from itertools import *
 import jinja2
 import os
 import random
-from itertools import *
-from operator import itemgetter
-from BeautifulSoup import BeautifulSoup
-jinja_environment = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
+import webapp2
+
 from models import Product, Site, Page, Archive_Price, acme, betta_stuff
+
+from google.appengine.ext import webapp
+from google.appengine.ext.webapp.util import login_required
+from google.appengine.api import users
+
+from oauth2client.appengine import StorageByKeyName
+from oauth2client.client import OAuth2WebServerFlow
+
+jinja_environment = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
+
 
 class init(webapp2.RequestHandler):
     '''
@@ -95,35 +103,6 @@ class update(webapp2.RequestHandler):
         self.response.out.write('pages scraped and updated')
 
 
-class MainPage(webapp2.RequestHandler):
-    '''
-        Main page. Uses Itertools to group up the data neatly
-    '''
-    def grouper(self,data):
-        data.sort()
-        r = []
-        for product_key, outer_grouper in groupby(data, lambda o:o.product):
-            p = Product.query(Product.key== product_key).get()
-            for site_name, inner_grouper in groupby(list(outer_grouper), lambda o:o.url):
-                for page in inner_grouper:
-                    page.product_data = p
-                    s = Site.query(Site.key == page.site).get()
-                    page.site_name = s.name
-                    r.append(page)
-        r = sorted(r, key=lambda p: p.product_data.name)
-        return r
-
-    def get(self):
-        allproducts = Product.query().fetch()
-        allpages = Page.query().order(Page.product).fetch()
-        product_list = self.grouper(data=allpages)
-        template_values = {
-            'products':allproducts,
-            'pages': product_list,
-            }
-        template = jinja_environment.get_template('templates/main.html')
-        self.response.out.write(template.render(template_values))
-
 
 class archive(webapp2.RequestHandler):
     '''
@@ -141,9 +120,73 @@ class archive(webapp2.RequestHandler):
         self.response.out.write(template.render(template_values))
 
 
+class MainPage(webapp2.RequestHandler):
+    def grouper(self,data):
+        data.sort()
+        r = []
+        for product_key, outer_grouper in groupby(data, lambda o:o.product):
+            p = Product.query(Product.key== product_key).get()
+            for site_name, inner_grouper in groupby(list(outer_grouper), lambda o:o.url):
+                for page in inner_grouper:
+                    page.product_data = p
+                    s = Site.query(Site.key == page.site).get()
+                    page.site_name = s.name
+                    r.append(page)
+        r = sorted(r, key=lambda p: p.product_data.name)
+        return r
+
+    @login_required
+    def get(self):
+        user = users.get_current_user()
+        credentials = StorageByKeyName(Credentials, user.user_id(), 'credentials').get()
+        if self.request.get('logout'):
+            if credentials:
+                StorageByKeyName(Credentials, user.user_id(), 'credentials').locked_delete()
+            self.response.out.write('Thanks, you are now logged out')
+            return
+        if credentials:
+            allproducts = Product.query().fetch()
+            allpages = Page.query().order(Page.product).fetch()
+            product_list = self.grouper(data=allpages)
+            template_values = {
+                'products':allproducts,
+                'pages': product_list,
+                'user_email':user.email()
+                }
+
+            template = jinja_environment.get_template('templates/main.html')
+            self.response.out.write(template.render(template_values))
+        else:
+            flow = OAuth2WebServerFlow(
+                client_id='<myid>.apps.googleusercontent.com',
+                client_secret='<secret>',
+                scope='https://www.googleapis.com/auth/buzz',
+                user_agent='comparinator')
+            callback = 'http://comparinator.appspot.com/oauth2callback'
+            authorize_url = flow.step1_get_authorize_url(redirect_uri = callback)
+            memcache.set(user.user_id(), pickle.dumps(flow))
+            self.redirect(authorize_url)
+            return
+
+
+class OAuthHandler(webapp.RequestHandler):
+
+    @login_required
+    def get(self):
+        user = users.get_current_user()
+        flow = pickle.loads(memcache.get(user.user_id()))
+        if flow:
+            credentials = flow.step2_exchange(self.request.params)
+            StorageByKeyName(Credentials, user.user_id(), 'credentials').put(credentials)
+            self.redirect('/')
+        else:
+            self.response.out.write('no flow')
+
+
 app = webapp2.WSGIApplication([
         ('/init', init),
         ('/get', update),
-        ('/', MainPage),
         ('/archive', archive),
+        ('/oauth2callback', OAuthHandler),
+        ('/', MainPage),
     ],debug=True)

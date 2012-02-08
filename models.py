@@ -1,7 +1,9 @@
 from google.appengine.ext.ndb import model
 from BeautifulSoup import BeautifulSoup
 import re
-
+from oauth2client.appengine import CredentialsProperty
+from google.appengine.api import memcache
+from google.appengine.ext import db
 
 class Product(model.Model):
     name = model.StringProperty()
@@ -23,7 +25,6 @@ class Page(model.Expando):
     date = model.DateTimeProperty(auto_now_add=True)
     current_price = model.FloatProperty()
 
-
 class Archive_Price(model.Model):
     product = model.KeyProperty()
     date = model.DateTimeProperty()
@@ -39,6 +40,10 @@ class retailer(object):
         functions, (such as shipping cost) etc.
 
     '''
+class Credentials(db.Model):
+    credentials = CredentialsProperty()
+
+class retailer(object):
     def get_page_content(self,url):
         from google.appengine.api import urlfetch
         result = urlfetch.fetch(url=url)
