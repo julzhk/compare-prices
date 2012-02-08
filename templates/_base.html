@@ -20,6 +20,11 @@
         <div class="container">
           <a class="brand" href="#">Price Comparisonator</a>
           <ul class="nav">
+              {% if user_email %}
+              <a href="?logout=1">
+                  logout
+              </a>
+              {% endif %}
           </ul>
         </div>
       </div>
@@ -50,10 +55,8 @@
       </div>
 
       <footer>
-        <!--<p>&copy; Julian Harley 2012</p>-->
           <p>
-            For guidance only, please check with the site for definitive data
-          </p>
+          For guidance only, please check with the site for definitive data
       </footer>
 
     </div> <!-- /container -->

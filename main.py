@@ -127,16 +127,29 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         user = users.get_current_user()
         credentials = StorageByKeyName(Credentials, user.user_id(), 'credentials').get()
-        if credentials:
-            self.response.out.write('ok logged ')
-            self.response.out.write(user.email() )
+        if self.request.get('logout'):
+            if credentials:
+                StorageByKeyName(Credentials, user.user_id(), 'credentials').locked_delete()
+            self.response.out.write('Thanks, you are now logged out')
             return
+        if credentials:
+            allproducts = Product.query().fetch()
+            allpages = Page.query().order(Page.product).fetch()
+            product_list = self.grouper(data=allpages)
+            template_values = {
+                'products':allproducts,
+                'pages': product_list,
+                'user_email':user.email()
+                }
+
+            template = jinja_environment.get_template('templates/main.html')
+            self.response.out.write(template.render(template_values))
         else:
             self.response.out.write('ok not creds login')
             flow = OAuth2WebServerFlow(
                 client_id='353754469771.apps.googleusercontent.com',
                 client_secret='p1nSLO7Pv21W8H4qLNMPIM4e',
-                scope='https://mail.google.com/mail/feed/atom',
+                scope='https://www.googleapis.com/auth/buzz',
                 user_agent='comparinator')
             callback = 'http://comparinator.appspot.com/oauth2callback'
             authorize_url = flow.step1_get_authorize_url(redirect_uri = callback)
@@ -144,29 +157,17 @@ class MainPage(webapp2.RequestHandler):
             self.redirect(authorize_url)
             return
 
-        allproducts = Product.query().fetch()
-        allpages = Page.query().order(Page.product).fetch()
-        product_list = self.grouper(data=allpages)
-        template_values = {
-            'products':allproducts,
-            'pages': product_list,
-            }
-
-        template = jinja_environment.get_template('templates/main.html')
-        self.response.out.write(template.render(template_values))
 
 class OAuthHandler(webapp.RequestHandler):
 
     @login_required
     def get(self):
         user = users.get_current_user()
-        import pickle
         flow = pickle.loads(memcache.get(user.user_id()))
         if flow:
-            print 'flow'
             credentials = flow.step2_exchange(self.request.params)
             StorageByKeyName(Credentials, user.user_id(), 'credentials').put(credentials)
-            self.response.out.write('ok u good')
+            self.redirect('/')
         else:
             self.response.out.write('no flow')
 
@@ -200,5 +201,6 @@ app = webapp2.WSGIApplication([
         ('/get', update),
         ('/archive', archive),
         ('/oauth2callback', OAuthHandler),
-    ('/', MainPage),
+        ('/', MainPage),
+        ('/reports', MainPage),
     ],debug=True)

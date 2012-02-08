@@ -4,6 +4,10 @@
 {% endblock %}
 
 {% block content %}
+{% if user_email %}
+    welcome:<br>
+    {{ user_email }}!
+{% endif %}
         <h3>
             Historical Data
         </h3>
