@@ -3,6 +3,7 @@ import webapp2
 import jinja2
 import os
 import random
+import pickle
 from itertools import *
 from operator import itemgetter
 import pprint
@@ -122,7 +123,27 @@ class MainPage(webapp2.RequestHandler):
         r = sorted(r, key=lambda p: p.product_data.name)
         return r
 
+    @login_required
     def get(self):
+        user = users.get_current_user()
+        credentials = StorageByKeyName(Credentials, user.user_id(), 'credentials').get()
+        if credentials:
+            self.response.out.write('ok logged ')
+            self.response.out.write(user.email() )
+            return
+        else:
+            self.response.out.write('ok not creds login')
+            flow = OAuth2WebServerFlow(
+                client_id='353754469771.apps.googleusercontent.com',
+                client_secret='p1nSLO7Pv21W8H4qLNMPIM4e',
+                scope='https://mail.google.com/mail/feed/atom',
+                user_agent='comparinator')
+            callback = 'http://comparinator.appspot.com/oauth2callback'
+            authorize_url = flow.step1_get_authorize_url(redirect_uri = callback)
+            memcache.set(user.user_id(), pickle.dumps(flow))
+            self.redirect(authorize_url)
+            return
+
         allproducts = Product.query().fetch()
         allpages = Page.query().order(Page.product).fetch()
         product_list = self.grouper(data=allpages)
@@ -133,6 +154,21 @@ class MainPage(webapp2.RequestHandler):
 
         template = jinja_environment.get_template('templates/main.html')
         self.response.out.write(template.render(template_values))
+
+class OAuthHandler(webapp.RequestHandler):
+
+    @login_required
+    def get(self):
+        user = users.get_current_user()
+        import pickle
+        flow = pickle.loads(memcache.get(user.user_id()))
+        if flow:
+            print 'flow'
+            credentials = flow.step2_exchange(self.request.params)
+            StorageByKeyName(Credentials, user.user_id(), 'credentials').put(credentials)
+            self.response.out.write('ok u good')
+        else:
+            self.response.out.write('no flow')
 
 class archive(webapp2.RequestHandler):
     def get(self):
@@ -146,15 +182,23 @@ class archive(webapp2.RequestHandler):
         template = jinja_environment.get_template('templates/archive.html')
         self.response.out.write(template.render(template_values))
 
+from apiclient.discovery import build
+from oauth2client.appengine import CredentialsProperty
+from oauth2client.appengine import StorageByKeyName
+from oauth2client.client import OAuth2WebServerFlow
+from google.appengine.api import memcache
+from google.appengine.api import users
+from google.appengine.ext import db
+from google.appengine.ext import webapp
+from google.appengine.ext.webapp import template
+from google.appengine.ext.webapp import util
+from google.appengine.ext.webapp.util import login_required
 
-webapp2_config = {}
-webapp2_config['webapp2_extras.sessions'] = {
-    'secret_key': 'Im_an_alien',
-    }
 
 app = webapp2.WSGIApplication([
         ('/init', init),
         ('/get', update),
         ('/archive', archive),
+        ('/oauth2callback', OAuthHandler),
     ('/', MainPage),
     ],debug=True)

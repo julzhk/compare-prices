@@ -1,5 +1,17 @@
 from google.appengine.ext.ndb import model
 from BeautifulSoup import BeautifulSoup
+from google.appengine.ext import db
+from apiclient.discovery import build
+from oauth2client.appengine import CredentialsProperty
+from oauth2client.appengine import StorageByKeyName
+from oauth2client.client import OAuth2WebServerFlow
+from google.appengine.api import memcache
+from google.appengine.api import users
+from google.appengine.ext import db
+from google.appengine.ext import webapp
+from google.appengine.ext.webapp import template
+from google.appengine.ext.webapp import util
+from google.appengine.ext.webapp.util import login_required
 import re
 
 class Product(model.Model):
@@ -28,7 +40,8 @@ class Archive_Price(model.Model):
     url = model.StringProperty()
     site = model.StringProperty()
 
-
+class Credentials(db.Model):
+    credentials = CredentialsProperty()
 
 class retailer(object):
     def get_page_content(self,url):
