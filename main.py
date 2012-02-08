@@ -9,7 +9,6 @@ import pprint
 from BeautifulSoup import BeautifulSoup
 import re
 
-
 jinja_environment = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
 from google.appengine.api import users
 from models import *
@@ -97,10 +96,15 @@ class update(webapp2.RequestHandler):
         allpages = Page.query().order(Page.date).fetch()
         for page in allpages:
             site = Site.query(Site.key == page.site).get()
-            g = eval(site.price_class)()
-            page.current_price = g.get_price(url = page.url)
-            self.store_archive(page)
-            page.put()
+            try:
+                g = eval(site.price_class)()
+                page.current_price = g.get_price(url = page.url)
+                self.store_archive(page)
+                page.put()
+            except NameError:
+                self.response.out.write(
+                    'Problem scraping: "%s" does it exists?' % (site.price_class)
+                )
         self.response.out.write('pages scraped and updated')
 
 class MainPage(webapp2.RequestHandler):
@@ -143,10 +147,14 @@ class archive(webapp2.RequestHandler):
         self.response.out.write(template.render(template_values))
 
 
+webapp2_config = {}
+webapp2_config['webapp2_extras.sessions'] = {
+    'secret_key': 'Im_an_alien',
+    }
 
 app = webapp2.WSGIApplication([
         ('/init', init),
         ('/get', update),
-        ('/', MainPage),
         ('/archive', archive),
+    ('/', MainPage),
     ],debug=True)
