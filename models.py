@@ -5,6 +5,7 @@ from oauth2client.appengine import CredentialsProperty
 from google.appengine.api import memcache
 from google.appengine.ext import db
 
+
 class Product(model.Model):
     name = model.StringProperty()
     sku = model.StringProperty()
@@ -25,7 +26,8 @@ class Page(model.Expando):
     date = model.DateTimeProperty(auto_now_add=True)
     current_price = model.FloatProperty()
 
-class Archive_Price(model.Model):
+
+class ArchivePrice(model.Model):
     product = model.KeyProperty()
     date = model.DateTimeProperty()
     price = model.FloatProperty()
@@ -33,31 +35,33 @@ class Archive_Price(model.Model):
     site = model.StringProperty()
 
 
-class retailer(object):
+class Credentials(db.Model):
+    credentials = CredentialsProperty()
+
+
+class Retailer(object):
     '''
         Abstract Base Class for each online shop.
         Each vendor has a custom get_price method, and perhaps other
         functions, (such as shipping cost) etc.
 
     '''
-class Credentials(db.Model):
-    credentials = CredentialsProperty()
 
-class retailer(object):
-    def get_page_content(self,url):
+    def get_page_content(self, url):
         from google.appengine.api import urlfetch
+
         result = urlfetch.fetch(url=url)
         if result.status_code == 200:
             return result.content
 
 
-class acme(retailer):
+class acme(Retailer):
     '''
         A sample vendor.
     '''
 
-    def get_price(self,url):
-        html_doc  = self.get_page_content(url =url)
+    def get_price(self, url):
+        html_doc = self.get_page_content(url=url)
         soup = BeautifulSoup(html_doc)
         for i in soup.findAll(color="#ff0000"):
             for c in i.contents:
@@ -66,13 +70,13 @@ class acme(retailer):
                     return float(price[0])
 
 
-class betta_stuff(retailer):
+class betta_stuff(Retailer):
     '''
         A sample vendor.
     '''
 
-    def get_price(self,url):
-        html_doc  = self.get_page_content(url =url)
+    def get_price(self, url):
+        html_doc = self.get_page_content(url=url)
         soup = BeautifulSoup(html_doc)
         i = soup.find(id="pricediv0")
         c = i.contents[0]

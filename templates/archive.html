@@ -3,45 +3,45 @@
     <h1>
         <a href="{{ product.our_url }}">
             {{ product.name }}
-</a>
+        </a>
     </h1>
 {% endblock %}
 
 {% block content %}
-        <h3>
-            Historical Data
-        </h3>
+    <h3>
+        Historical Data
+    </h3>
 
 {% endblock %}
 {% block main %}
 
-<table class="table table-striped table-bordered table-condensed">
-    <thead>
-    <tr>
-        <th>Site</th>
-        <th>Date (d/m/y)</th>
-        <th>price</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% for d in data %}
-    <tr>
-        <td>
-            <a href="{{ d.url }}">
-                {{ d.site}}
-            </a>
-        </td>
-        <td>
-            {{ d.date.strftime('%d/%m/%Y') }}
-        </td>
-        <td>
-            <a href="{{ d.url }}">
-                &pound; {{ d.price|round(2)}}
-            </a>
-        </td>
+    <table class="table table-striped table-bordered table-condensed">
+        <thead>
+        <tr>
+            <th>Site</th>
+            <th>Date (d/m/y)</th>
+            <th>price</th>
         </tr>
-    {% endfor %}
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+        {% for d in data %}
+            <tr>
+                <td>
+                    <a href="{{ d.url }}">
+                        {{ d.site }}
+                    </a>
+                </td>
+                <td>
+                    {{ d.date.strftime('%d/%m/%Y') }}
+                </td>
+                <td>
+                    <a href="{{ d.url }}">
+                        &pound; {{ d.price|round(2)}}
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 
 {% endblock %}

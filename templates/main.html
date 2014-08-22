@@ -4,76 +4,73 @@
 {% endblock %}
 
 {% block content %}
-<<<<<<< HEAD
-=======
-{% if user_email %}
-    welcome:<br>
-    {{ user_email }}!
-{% endif %}
->>>>>>> refs/heads/master
-        <h3>
-            Historical Data
-        </h3>
-<ul>
-    {% for product in products %}
-    <li>
-        <a href="/archive?product={{ product.key.id() }}">
-            {{ product.name}}
-        </a>
-    </li>
-    {% endfor %}
-</ul>
+    {% if user_email %}
+        welcome:<br>
+        {{ user_email }}!
+    {% endif %}
+    <h3>
+        Historical Data
+    </h3>
+    <ul>
+        {% for product in products %}
+            <li>
+                <a href="/archive?product={{ product.key.id() }}">
+                    {{ product.name }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
 {% endblock %}
 {% block main %}
 
-<table class="table table-striped table-bordered table-condensed">
-    <thead>
-    <tr>
-        <th>Product</th>
-        <th>Site</th>
-        <th>Their price</th>
-        <th>Our price</th>
-        <th>Price Diff.</th>
-    </tr>
-    </thead>
-    <tbody>
-    {% for product in pages|groupby('product_data.name') %}
-    <tr>
-        <td>
-            <a href="{{ product.our_url }}">
-                {{ product.grouper }}
-            </a>
-        </td>
-        {% for i in range(4) %}
-        <td></td>
+    <table class="table table-striped table-bordered table-condensed">
+        <thead>
+        <tr>
+            <th>Product</th>
+            <th>Site</th>
+            <th>Their price</th>
+            <th>Our price</th>
+            <th>Price Diff.</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for product in pages|groupby('product_data.name') %}
+            <tr>
+                <td>
+                    <a href="{{ product.our_url }}">
+                        {{ product.grouper }}
+                    </a>
+                </td>
+                {% for i in range(4) %}
+                    <td></td>
+                {% endfor %}
+            </tr>
+            {% for page in product.list %}
+                <tr>
+                    <td>
+                        &nbsp;
+                    </td>
+                    <td>
+                        <a href="{{ page.url }}">
+                            {{ page.site_name }}
+                        </a>
+                    </td>
+                    <td>
+                        &pound; {{ page.current_price|round(2)}}
+                    </td>
+                    <td>
+                        &pound; {{ page.product_data.our_price|round(2) }}
+                    </td>
+                    <td>
+                        {% if page.current_price < page.product_data.our_price %}
+                            &pound; {{ page.product_data.our_price|round(2) -
+                                page.current_price|round(2)}}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
         {% endfor %}
-    </tr>
-    {% for page in product.list %}
-    <tr>
-        <td>
-            &nbsp;
-        </td>
-        <td>
-            <a href="{{ page.url}}">
-                {{ page.site_name }}
-            </a>
-        </td>
-        <td>
-            &pound; {{ page.current_price|round(2)}}
-        </td>
-        <td>
-            &pound; {{ page.product_data.our_price|round(2) }}
-        </td>
-        <td>
-            {% if page.current_price < page.product_data.our_price %}
-            &pound; {{ page.product_data.our_price|round(2) -
-            page.current_price|round(2)}}
-            {% endif %}
-        </td>
-    </tr>
-    {% endfor %}
-    {% endfor %}
-    </tbody>
-</table>
+        </tbody>
+    </table>
 
 {% endblock %}
